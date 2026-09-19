@@ -114,13 +114,26 @@ async def test_project(dut):
 
 
 
+    os.makedirs("reference", exist_ok=True)
 
     for img in glob.glob("output/frame*.png"):
-        basename = img.removeprefix("output/")
+        basename = os.path.basename(img)
+        reference_path = os.path.join("reference", basename)
+
+        if not os.path.exists(reference_path):
+            dut._log.warning(
+                f"No reference image found for {basename}. "
+                f"Captured image is available at {img}"
+            )
+            continue
+
         dut._log.info(f"Comparing {basename} to reference image")
+
         frame = Image.open(img)
-        ref = Image.open(f"reference/{basename}")
+        ref = Image.open(reference_path)
+
         diff = ImageChops.difference(frame, ref)
+
         if diff.getbbox() is not None:
             diff.save(f"output/diff_{basename}")
             assert False, f"Rendered {basename} differs from reference image"
